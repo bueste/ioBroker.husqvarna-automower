@@ -72,6 +72,8 @@ class HusqvarnaAutomower extends utils.Adapter {
 				{ suffix: /\.system\.type$/, badRole: 'info.type', common: { role: 'text' } },
 				{ suffix: /\.system\.serialNumber$/, badRole: 'info.serialnumber', badType: 'number', common: { role: 'info.serial', type: 'string' } },
 				{ suffix: /\.positions\.latlong$/, badRole: 'value.gps', common: { role: 'text' } },
+				// added in 1.0.9 (manual maintainer review, PR #6326):
+				{ suffix: /\.workAreas\.[^.]+\.enabled$/, badRole: 'indicator.connected', common: { role: 'indicator' } },
 			];
 
 			let fixedCount = 0;
@@ -80,6 +82,16 @@ class HusqvarnaAutomower extends utils.Adapter {
 				if (!obj || obj.type !== 'state' || !obj.common) {
 					continue;
 				}
+
+				// added in 1.0.9: button role requires read:false, but every button state created by
+				// versions <=1.0.8 has read:true. Not suffix-based (13 different paths, some only
+				// conditionally created) - checked directly on role+read instead, independent of path.
+				if (obj.common.role === 'button' && obj.common.read === true) {
+					await this.extendObjectAsync(id, { common: { read: false } });
+					fixedCount++;
+					continue;
+				}
+
 				for (const fix of fixes) {
 					if (!fix.suffix.test(id)) {
 						continue;

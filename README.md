@@ -375,6 +375,9 @@ function round(digit, digits) {
 
 ## Changelog
 
+### 1.0.10 (2026-08-08)
+- Fix: the button role:read=false and workAreas.<id>.enabled role fixes from 1.0.9 only applied to newly created objects (setObjectNotExistsAsync never updates existing ones). Any installation upgrading from <=1.0.8 kept the old, incorrect values forever. migrateObjectRoles() now also force-corrects these two on every startup, exactly like it already does for the pre-1.0.3 issues. Verified against a live object dump: corrects exactly the 18 affected button states, no false positives.
+
 ### 1.0.9 (2026-08-08)
 - Fix all issues from the manual maintainer review (PR #6326): all 13 button states now use read:false as required by the button role spec; fixed a case-sensitivity bug (StartInWorkArea vs startInWorkArea) that made the STARTINWORKAREA command completely non-functional; added a 10s timeout to all 5 axios calls to prevent indefinite hangs on an unresponsive API; stayOutZones.zones is now JSON.stringify'd before setState as required for array-type states; workAreas.<id>.enabled now uses the correct 'indicator' role instead of the unrelated 'indicator.connected'; completed the placeholder zh-cn translation for statisticsIntervalHint; added validation (hasForbiddenChars) for the externally-sourced mower ID and workAreaId before using them in object paths - invalid values are rejected and logged rather than silently sanitized, since the mower ID is later parsed back out of the object path to address the real Husqvarna API.
 
@@ -402,11 +405,7 @@ function round(digit, digits) {
 
 -   (Stefan Bühler) FIX: 1.0.3 corrected several wrong object roles/types (ACTIONS.HEADLIGHT, ACTIONS.schedule fields, messages.messages, system.id/type/serialNumber), but `setObjectNotExistsAsync()` never touches an object that already exists - so installations updating from before 1.0.3 kept the old, incorrect objects forever. Added a one-time startup migration that force-corrects exactly those known objects via `extendObjectAsync()`, without touching anything else.
 
-### 1.0.3 (17.07.2026)
-
--   (Stefan Bühler) Corrected several object role/type mismatches found by the ioBroker store submission's object structure check (ACTIONS.HEADLIGHT, ACTIONS.schedule fields, messages.messages, system.id/type/serialNumber). No functional/API changes - purely metadata (common.role/common.type) corrections.
-
-### 1.0.2 and older
+### 1.0.3 and older
 
 Older changelog entries can be found in [CHANGELOG_OLD.md](CHANGELOG_OLD.md).
 
