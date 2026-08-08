@@ -264,6 +264,7 @@ class HusqvarnaAutomower extends utils.Adapter {
 			method: 'POST',
 			url: 'https://api.authentication.husqvarnagroup.dev/v1/oauth2/token',
 			data: `grant_type=client_credentials&client_id=${this.config.applicationKey}&client_secret=${this.config.applicationSecret}`,
+			timeout: 10000,
 		})
 			.then(response => {
 				this.log.debug(`[getAccessToken]: HTTP status response: ${response.status} ${response.statusText}; config: ${JSON.stringify(this.redact(response.config))}; headers: ${JSON.stringify(this.redact(response.headers))}; data: ${JSON.stringify(this.redact(response.data))}`);
@@ -292,6 +293,7 @@ class HusqvarnaAutomower extends utils.Adapter {
 				'X-Api-Key': this.config.applicationKey,
 				'Authorization-Provider': 'husqvarna',
 			},
+			timeout: 10000,
 		})
 			.then(async response => {
 				this.log.debug(`[getMowerData]: HTTP status response: ${response.status} ${response.statusText}; config: ${JSON.stringify(this.redact(response.config))}; headers: ${JSON.stringify(this.redact(response.headers))}; data: ${JSON.stringify(response.data)}`);
@@ -324,6 +326,7 @@ class HusqvarnaAutomower extends utils.Adapter {
 					'X-Api-Key': this.config.applicationKey,
 					'Authorization-Provider': 'husqvarna',
 				},
+				timeout: 10000,
 			})
 				.then(response => {
 					this.log.debug(`[getAndFillMowerMessages]: HTTP status response: ${response.status} ${response.statusText}; data: ${JSON.stringify(response.data)}`);
@@ -346,12 +349,34 @@ class HusqvarnaAutomower extends utils.Adapter {
 
 	// https://github.com/ioBroker/ioBroker.docs/blob/master/docs/en/dev/objectsschema.md
 	// https://github.com/ioBroker/ioBroker/blob/master/doc/STATE_ROLES.md#state-roles
+	// mower.id (UUID) and workAreaId are used as-is directly in ioBroker object paths below. They come
+	// from an external source (the Husqvarna API), so per the adapter checklist they must be validated
+	// against this.FORBIDDEN_CHARS before being used to build object IDs.
+	// Deliberately REJECT-and-skip instead of sanitize-and-continue: onStateChange() later parses the
+	// mower ID back OUT of the object's state path (idSplit[2]) to address the real Husqvarna API when
+	// sending a command. If we silently replaced forbidden characters here, that round-trip would no
+	// longer match the real Husqvarna mower ID, and commands sent to the mower would silently go to a
+	// wrong/non-existent ID instead of just failing loudly - a much worse outcome than skipping a single
+	// malformed device for one poll cycle. In practice this never triggers for genuine Husqvarna UUIDs
+	// or numeric workAreaIds; it only guards against unexpected/malformed API responses.
+	hasForbiddenChars(id) {
+		if (typeof id !== 'string' && typeof id !== 'number') {
+			return true;
+		}
+		const str = String(id);
+		return str.replace(this.FORBIDDEN_CHARS, '') !== str;
+	}
+
 	async createObjects(mowerData) {
 		// this.log.debug(`[createObjects]: listMowers: ${JSON.stringify(listMowers)}`);
 
 		this.log.debug(`[createObjects]: start objects creation for ${Object.keys(mowerData.data).length} device${Object.keys(mowerData.data).length > 1 ? 's' : ''}...`);
 		if (Object.keys(mowerData.data).length !== 0) {
 			for (let i = 0; i < Object.keys(mowerData.data).length; i++) {
+				if (this.hasForbiddenChars(mowerData.data[i].id)) {
+					this.log.error(`[createObjects]: mower id "${mowerData.data[i].id}" contains characters forbidden in ioBroker object IDs - skipping this device. (ERR_#040)`);
+					continue;
+				}
 				if (mowerData.data[i].type === 'mower') {
 					// create device
 					await this.setObjectNotExistsAsync(mowerData.data[i].id, {
@@ -1195,6 +1220,10 @@ class HusqvarnaAutomower extends utils.Adapter {
 						});
 
 						for (let j = 0; j < mowerData.data[i].attributes.workAreas.length; j++) {
+							if (this.hasForbiddenChars(mowerData.data[i].attributes.workAreas[j].workAreaId)) {
+								this.log.error(`[createObjects]: workAreaId "${mowerData.data[i].attributes.workAreas[j].workAreaId}" contains characters forbidden in ioBroker object IDs - skipping this work area. (ERR_#042)`);
+								continue;
+							}
 							// create channel "workAreaId"
 							await this.setObjectNotExistsAsync(`${mowerData.data[i].id}.workAreas.${mowerData.data[i].attributes.workAreas[j].workAreaId}`, {
 								type: 'channel',
@@ -1244,7 +1273,7 @@ class HusqvarnaAutomower extends utils.Adapter {
 								common: {
 									name: 'If the work area is enabled or disabled.',
 									type: 'boolean',
-									role: 'indicator.connected',
+									role: 'indicator',
 									read: true,
 									write: false,
 								},
@@ -1379,7 +1408,7 @@ class HusqvarnaAutomower extends utils.Adapter {
 							type: 'boolean',
 							def: false,
 							role: 'button',
-							read: true,
+							read: false,
 							write: true,
 						},
 						native: {},
@@ -1391,7 +1420,7 @@ class HusqvarnaAutomower extends utils.Adapter {
 							type: 'boolean',
 							def: false,
 							role: 'button',
-							read: true,
+							read: false,
 							write: true,
 						},
 						native: {},
@@ -1403,7 +1432,7 @@ class HusqvarnaAutomower extends utils.Adapter {
 							type: 'boolean',
 							def: false,
 							role: 'button',
-							read: true,
+							read: false,
 							write: true,
 						},
 						native: {},
@@ -1424,7 +1453,7 @@ class HusqvarnaAutomower extends utils.Adapter {
 							type: 'boolean',
 							def: false,
 							role: 'button',
-							read: true,
+							read: false,
 							write: true,
 						},
 						native: {},
@@ -1450,7 +1479,7 @@ class HusqvarnaAutomower extends utils.Adapter {
 							type: 'boolean',
 							def: false,
 							role: 'button',
-							read: true,
+							read: false,
 							write: true,
 						},
 						native: {},
@@ -1471,7 +1500,7 @@ class HusqvarnaAutomower extends utils.Adapter {
 							type: 'boolean',
 							def: false,
 							role: 'button',
-							read: true,
+							read: false,
 							write: true,
 						},
 						native: {},
@@ -1534,7 +1563,7 @@ class HusqvarnaAutomower extends utils.Adapter {
 								type: 'boolean',
 								def: false,
 								role: 'button',
-								read: true,
+								read: false,
 								write: true,
 							},
 							native: {},
@@ -1593,7 +1622,7 @@ class HusqvarnaAutomower extends utils.Adapter {
 								type: 'boolean',
 								def: false,
 								role: 'button',
-								read: true,
+								read: false,
 								write: true,
 							},
 							native: {},
@@ -1687,7 +1716,7 @@ class HusqvarnaAutomower extends utils.Adapter {
 								type: 'boolean',
 								def: false,
 								role: 'button',
-								read: true,
+								read: false,
 								write: true,
 							},
 							native: {},
@@ -1709,7 +1738,7 @@ class HusqvarnaAutomower extends utils.Adapter {
 							type: 'boolean',
 							role: 'button',
 							def: false,
-							read: true,
+							read: false,
 							write: true,
 						},
 						native: {},
@@ -1860,7 +1889,7 @@ class HusqvarnaAutomower extends utils.Adapter {
 							type: 'boolean',
 							def: false,
 							role: 'button',
-							read: true,
+							read: false,
 							write: true,
 						},
 						native: {},
@@ -1872,7 +1901,7 @@ class HusqvarnaAutomower extends utils.Adapter {
 							type: 'boolean',
 							def: false,
 							role: 'button',
-							read: true,
+							read: false,
 							write: true,
 						},
 						native: {},
@@ -1886,7 +1915,7 @@ class HusqvarnaAutomower extends utils.Adapter {
 								type: 'boolean',
 								def: false,
 								role: 'button',
-								read: true,
+								read: false,
 								write: true,
 							},
 							native: {},
@@ -1930,6 +1959,10 @@ class HusqvarnaAutomower extends utils.Adapter {
 
 	async fillObjects(mowerData) {
 		for (const i in mowerData.data) {
+			if (this.hasForbiddenChars(mowerData.data[i].id)) {
+				this.log.error(`[fillObjects]: mower id "${mowerData.data[i].id}" contains characters forbidden in ioBroker object IDs - skipping this device. (ERR_#041)`);
+				continue;
+			}
 			if ('attributes' in mowerData.data[i]) {
 				if (this.firstStart) {
 					this.setState(`${mowerData.data[i].id}.system.type`, {
@@ -2156,7 +2189,7 @@ class HusqvarnaAutomower extends utils.Adapter {
 					if (mowerData.data[i].attributes.stayOutZones) {
 						if (mowerData.data[i].attributes.stayOutZones.zones) {
 							this.setState(`${mowerData.data[i].id}.stayOutZones.zones`, {
-								val: mowerData.data[i].attributes.stayOutZones.zones,
+								val: JSON.stringify(mowerData.data[i].attributes.stayOutZones.zones),
 								ack: true,
 							});
 						}
@@ -2164,6 +2197,10 @@ class HusqvarnaAutomower extends utils.Adapter {
 				}
 				if (mowerData.data[i].attributes.capabilities.workAreas) {
 					for (let j = 0; j < mowerData.data[i].attributes.workAreas.length; j++) {
+						if (this.hasForbiddenChars(mowerData.data[i].attributes.workAreas[j].workAreaId)) {
+							this.log.error(`[fillObjects]: workAreaId "${mowerData.data[i].attributes.workAreas[j].workAreaId}" contains characters forbidden in ioBroker object IDs - skipping this work area. (ERR_#043)`);
+							continue;
+						}
 						this.setState(`${mowerData.data[i].id}.workAreas.${mowerData.data[i].attributes.workAreas[j].workAreaId}.workAreaId`, {
 							val: mowerData.data[i].attributes.workAreas[j].workAreaId,
 							ack: true,
@@ -2747,6 +2784,7 @@ class HusqvarnaAutomower extends utils.Adapter {
 						Accept: '*/*',
 					},
 					data: `token=${this.access_token}`,
+					timeout: 10000,
 				})
 					.then(response => {
 						this.log.debug(`[onUnload]: HTTP status response: ${response.status} ${response.statusText}; config: ${JSON.stringify(this.redact(response.config))}; headers: ${JSON.stringify(this.redact(response.headers))}; data: ${JSON.stringify(response.data)}`);
@@ -2822,8 +2860,8 @@ class HusqvarnaAutomower extends utils.Adapter {
 						return;
 					}
 				} else if (command === 'STARTINWORKAREA') {
-					const startTime = await this.getStateAsync(`${parentPath}.StartInWorkArea.startTime`);
-					const workAreaId = await this.getStateAsync(`${parentPath}.StartInWorkArea.workAreaId`);
+					const startTime = await this.getStateAsync(`${parentPath}.startInWorkArea.startTime`);
+					const workAreaId = await this.getStateAsync(`${parentPath}.startInWorkArea.workAreaId`);
 					if (startTime && startTime.val) {
 						if (Number(startTime.val) >= 0 && Number(startTime.val) <= 1439) {
 							if (workAreaId && workAreaId.val) {
@@ -3042,6 +3080,7 @@ class HusqvarnaAutomower extends utils.Adapter {
 					},
 					// CONFIRMERROR / RESETCUTTINGBLADEUSAGETIME need no request body at all (data_command.data stays unset)
 					data: 'data' in data_command ? data_command : undefined,
+					timeout: 10000,
 				})
 					.then(response => {
 						this.log.debug(`[onStateChange]: HTTP status response: ${response.status} ${response.statusText}; config: ${JSON.stringify(this.redact(response.config))}; headers: ${JSON.stringify(this.redact(response.headers))}; data: ${JSON.stringify(response.data)}`);

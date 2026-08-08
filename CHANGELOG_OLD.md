@@ -1,77 +1,40 @@
 # Older changes
 
-Changelog entries for releases before 1.0.0 (the rename to husqvarna-automower-connect).
-Full history and issue links refer to the original project, [ice987987/ioBroker.husqvarna-automower](https://github.com/ice987987/ioBroker.husqvarna-automower).
+Changelog entries for older releases.
 
-### 0.6.0-beta.12 **WORK IN PROGRESS**
+### 1.0.2 (16.07.2026)
 
--   (ice987987) BREAKING: admin >= v7.4.10 is required
--   (ice987987) states `.capabilities.canConfirmError`, `mower.workAreaId`, `.workAreas.[workAreaId].enabled`, `.workAreas.[workAreaId].lastTimeCompleted`, `.workAreas.[workAreaId].progress`,`ACTIONS.REFRESHSTATISTICS` and `.ACTIONS.DATETIME` added
--   (ice987987) state `.workAreas.[workAreaId].calendar` removed
--   (ice987987) state `.ACTIONS.schedule.[i].workAreaId` added, if supportet by the model
--   (ice987987) schedule-limitation removed `.ACTIONS.schedule.[i].`
--   (ice987987) state `.positions.positions` added [#191](https://github.com/ice987987/ioBroker.husqvarna-automower/issues/191)
--   (ice987987) try to fix [#197](https://github.com/ice987987/ioBroker.husqvarna-automower/issues/197), [#226](https://github.com/ice987987/ioBroker.husqvarna-automower/issues/226), [#228](https://github.com/ice987987/ioBroker.husqvarna-automower/issues/228), [#230](https://github.com/ice987987/ioBroker.husqvarna-automower/issues/230), [#231](https://github.com/ice987987/ioBroker.husqvarna-automower/issues/231)
--   (ice987987) dependencies updated
+-   (Stefan Bühler) Enabled automated npm releases via GitHub Actions using npm Trusted Publishing (OIDC) - no more manual publishing, and this and all future tagged releases are automatically signed with npm provenance. No functional/API changes.
 
-### 0.5.0 (17.02.2025)
+### 1.0.1 (16.07.2026)
 
--   (ice987987) BREAKING: js-controller >= v5.0.19 and node >= v18 is required
--   (ice987987) BREAKING: `.planner.action` removed
--   (ice987987) state `.ACTIONS.startInWorkArea.STARTINWORKAREA` start mower and cut for a duration of time `.ACTIONS.startInWorkArea.duration` (in minutes, optional, if zero (0) the override will be forever), in Area with ID `.ACTIONS.startInWorkArea.workAreaId` added [#124](https://github.com/ice987987/ioBroker.husqvarna-automower/issues/124)
--   (ice987987) states `.capabilities.position`, `.capabilities.headlights`, `.capabilities.workAreas`, `.capabilities.stayOutZones`, `.planner.externalReason`, `.stayOutZones.dirty`, `.stayOutZones.zones`, `.statistics.totalDrivenDistance`, `.workAreas.[workAreaId].workAreaId`, `.workAreas.[workAreaId].name`, `.workAreas.[workAreaId].cuttingHeight` and `.workAreas.[workAreaId].calendar` added [#124](https://github.com/ice987987/ioBroker.husqvarna-automower/issues/124)
--   (ice987987) state `.mower.inactiveReason` added
--   (ice987987) names of several states updated
--   (ice987987) descriptions of status and error codes updated
--   (ice987987) dependencies updated
--   (ice987987) source code improvements
--   (ice987987) state description of `.mower.errorCode` updated
--   (ice987987) state `.statistics.totalDriveDistance` corrected [#162](https://github.com/ice987987/ioBroker.husqvarna-automower/issues/162)
--   (ice987987) try to fix [#164](https://github.com/ice987987/ioBroker.husqvarna-automower/issues/164)
--   (ice987987) try to fix [#182](https://github.com/ice987987/ioBroker.husqvarna-automower/issues/182)
+-   (Stefan Bühler) Cleanup release addressing the ioBroker adapter store checker findings, no functional/API changes.
+-   (Stefan Bühler) Removed devDependencies already bundled by `@iobroker/testing` (`chai`, `mocha`, `sinon` and their `@types/*`)
+-   (Stefan Bühler) Updated `@iobroker/testing`, `admin` and `js-controller` minimum versions; fixed a peer-dependency conflict (`globals`)
+-   (Stefan Bühler) Migrated to `@tsconfig/node22` and the current standard Dependabot auto-merge workflow (`automerge-dependabot.yml`)
+-   (Stefan Bühler) Fixed copyright line formatting in README.md/LICENSE (Markdown line-break spacing); synced README installation requirements with io-package.json
 
-### 0.4.0 (07.07.2023)
+### 1.0.0 (14.07.2026)
 
--   (ice987987) BREAKING: `.settings.cuttingHeight` and `.settings.headlight` removed [#99](https://github.com/ice987987/ioBroker.husqvarna-automower/issues/99)
--   (ice987987) BREAKING: `.calendar.[0-3].start`, `.calendar.[0-3].duration`, `.calendar.[0-3].monday`, `.calendar.[0-3].tuesday`, `.calendar.[0-3].wednesday`, `.calendar.[0-3].thurdsay`, `.calendar.[0-3].friday`, `.calendar.[0-3].saturday` and `.calendar.[0-3].sunday` removed
--   (ice987987) BREAKING: node.js >= v16.4 and js-controller >= v4.0.24
--   (ice987987) dependencies updated
--   (ice987987) adapter icon updated
--   (ice987987) script for statistics updated
+-   (Stefan Bühler) Renamed/continued as `ioBroker.husqvarna-automower-connect`, a complete, actively maintained fork of `ioBroker.husqvarna-automower`. Full credit to ice987987 for the original adapter. BREAKING: adapter instance namespace changes from `husqvarna-automower.x` to `husqvarna-automower-connect.x` - create a new instance and re-enter Application Key/Secret.
+-   (Stefan Bühler) fix: `START`, `STARTINWORKAREA`, `PARK`, `CUTTINGHEIGHT`, `DATETIME` and `HEADLIGHT` sent a malformed request body (`attributes` was a sibling of `data` instead of nested inside `data.attributes`) and were rejected by the API
+-   (Stefan Bühler) fix: `DATETIME` used `type: 'dateTime'` instead of the required `type: 'settings'`
+-   (Stefan Bühler) fix: `HEADLIGHT` used `type: 'HeadLight'` instead of `type: 'settings'`, and sent the mode flat instead of nested in `attributes.headlight.mode`
+-   (Stefan Bühler) fix: `HEADLIGHT` validation compared against `'ALWAYS OFF'` (space) instead of `'ALWAYS_OFF'` (underscore)
+-   (Stefan Bühler) fix: `.ACTIONS.CUTTINGHEIGHT` was `undefined` until the first WebSocket update after adapter start (REST response returns `cuttingHeight` as a plain number, not `{height: N}`)
+-   (Stefan Bühler) fix: memory leak in the internal capabilities cache (grew by one duplicate entry on every statistics poll)
+-   (Stefan Bühler) added `.ACTIONS.CONFIRMERROR`, `.ACTIONS.RESETCUTTINGBLADEUSAGETIME`, `.ACTIONS.workAreaSettings` (set cutting height/enabled per work area) and `.ACTIONS.stayOutZoneSettings` (enable/disable a stay-out zone)
+-   (Stefan Bühler) added `.messages` channel with the error/event message history (REST on startup/on-demand + live WebSocket updates)
+-   (Stefan Bühler) added missing `.workAreas.[workAreaId]` fields: `type`, `useGlobalCuttingHeight`, `orientation`, `orientationShift`, `currentOrientation`, `lastTimeAbandoned`
+-   (Stefan Bühler) BREAKING: node.js >= v22 is required (v18 reached end-of-life April 2025, v20 reached end-of-life April 2026)
+-   (Stefan Bühler) security: `applicationSecret`, `applicationKey` and the live OAuth access token were logged in plaintext at debug level in several places; added redaction so they can no longer end up in a shared logfile
+-   (Stefan Bühler) security: token invalidation on adapter stop used a malformed request (wrong endpoint/headers) and never actually revoked the token with Husqvarna; fixed to use the correct `POST /v1/oauth2/revoke`
+-   (Stefan Bühler) security: `axios` updated 1.8.4 -> 1.18.1 (fixes several CVEs, including the critical CVE-2026-40175) and `ws` updated 8.18.3 -> 8.21.1 (fixes two High-severity CVEs); `npm audit --omit=dev` now reports 0 vulnerabilities
+-   (Stefan Bühler) fix: `statisticsInterval` validation was permanently unreachable (`&&` instead of `||`), so any configured value was silently accepted
+-   (Stefan Bühler) hardening: Application Key/Secret format check is now anchored; `stayOutZoneSettings.zoneId` is URL-encoded before use
+-   (Stefan Bühler) optimization: message history is no longer re-polled on every statistics interval tick (only on startup/on-demand), to avoid roughly doubling the request volume against Husqvarna's 10 000 requests/month budget
 
-### 0.3.3 (11.05.2023)
+### 0.6.0-beta.12 and older
 
--   (MK-2001) simple check if response contains geo data added [#98](https://github.com/ice987987/ioBroker.husqvarna-automower/issues/98)
--   (ice987987) dependencies updated
+Older changelog entries can be found in [CHANGELOG_OLD.md](CHANGELOG_OLD.md).
 
-### 0.3.2 (30.03.2023)
-
--   (ice987987) BREAKING: admin >= v6.3.5 is required
--   (ice987987) section "disclaimer" in readme added
--   (ice987987) ukrainian language added
-
-### 0.3.1 (04.11.2022)
-
--   (ice987987) BREAKING: js-controller >= v4.0.23 and admin >= v6.2.19 is required
--   (ice987987) source code improvements
--   (ice987987) ability to update statistical values
--   (ice987987) update dependencies
--   (ice987987) restructure feature request form
--   (ice987987) fix issue [#65](https://github.com/ice987987/ioBroker.husqvarna-automower/issues/65)
-
-### 0.3.0 (08.08.2022)
-
--   (ice987987) improved logging
--   (ice987987) update dependencies
--   (ice987987) update of vis binding `husqvarna-automower-connect.0.[mowerID from DP .system.id].mower.errorCode`
--   (ice978987) update of `common.states` of `.mower.errorCode`
--   (ice987987) adding German translations of vis-Bindings
--   (ice987987) adding Javascript-Script for statistics (`Distance between mower and charging station`)
--   (ice987987) adding statistics values from the Automower Connect API `.statistics.cuttingBladeUsageTime`, `.statistics.numberOfChargingCycles`, `.statistics.numberOfCollisions`, `.statistics.totalChargingTime`, `.statistics.totalCuttingTime`, `.statistics.totalRunningTime` and `.statistics.totalSearchingTime`
--   (ice987987) adding feature request form
-
-### 0.2.0 (14.06.2022)
-
--   (ice987987) support new login procedure to husqvarna's webservice using "Application key" and "Application secret" instead of "username (emailadress)" and "password" (issue [#33](https://github.com/ice987987/ioBroker.husqvarna-automower/issues/33))
--   (ice987987) update links to husqvarna homepage due to their updated homepage
--   (ice987987) improved bug-report form
